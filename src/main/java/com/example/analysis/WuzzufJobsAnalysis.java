@@ -50,7 +50,7 @@ public class WuzzufJobsAnalysis {
         AreasCountBarGraph(wuzzufData);
 
 
-
+        System.out.println(mostPopularSkills(wuzzufData));
 
 
 
@@ -98,6 +98,43 @@ public class WuzzufJobsAnalysis {
     {
         Dataset<Row> MostAreas_df= MostPopularAreas( df);
         DrawBarChart(MostAreas_df,"Location","count","Most Popular Areas","Areas","Count","Area's Count");
+
+    }
+    public Map<String, Integer> mostPopularSkills(Dataset<Row> df) {
+
+        List<Row> skillSet = df.collectAsList();
+        List<String> allSkils = new ArrayList<String>();
+        String skill;
+        for (Row row : skillSet) {
+            skill = row.get(7).toString();
+            String[] subs = skill.split(",");
+            for (String word : subs) {
+                allSkils.add(word);
+            }
+        }
+        Map<String, Integer> mapAllSkills =
+                allSkils.stream().collect(groupingBy(Function.identity(), summingInt(e -> 1)));
+        //Sort the map descending
+        Map<String, Integer> sorted_skillset = mapAllSkills
+                .entrySet()
+                .stream()
+                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+                .limit(100)
+                .collect(
+                        toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2,
+                                LinkedHashMap::new));
+        int idx = 0;
+
+        System.out.println("=============== Most Repaeated Skills ==============");
+        for (Map.Entry<String, Integer> entry : sorted_skillset.entrySet()) {
+            System.out.println(entry.getKey() + " : " + entry.getValue());
+            if (idx == 30) {
+                break;
+            }
+            idx++;
+        }
+        return (sorted_skillset);
+
 
     }
 
