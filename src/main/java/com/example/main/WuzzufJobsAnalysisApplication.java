@@ -3,12 +3,14 @@ package com.example.main;
 import com.example.analysis.WuzzufJobsAnalysis;
 
 import org.apache.spark.sql.SparkSession;
+
+import java.io.IOException;
 // import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 // @SpringBootApplication
 public class WuzzufJobsAnalysisApplication {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 
 		SparkSession spark = SparkSession
 				.builder()

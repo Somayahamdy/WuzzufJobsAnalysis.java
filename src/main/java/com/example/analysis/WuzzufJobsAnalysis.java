@@ -8,12 +8,14 @@ import org.apache.spark.sql.SparkSession;
 
 import com.example.dataAcess.WuzzufJobs;
 import com.example.dataAcess.DataDAO;
-import org.knowm.xchart.CategoryChart;
-import org.knowm.xchart.CategoryChartBuilder;
-import org.knowm.xchart.SwingWrapper;
+import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
 
+import java.awt.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
+import java.util.List;
 import java.util.function.Function;
 
 import static java.util.stream.Collectors.*;
@@ -30,7 +32,7 @@ public class WuzzufJobsAnalysis {
 
     }
 
-    public void readData() {
+    public void readData() throws IOException {
         DataDAO loader = new WuzzufJobs();
         wuzzufData = loader.load("src/main/resources/Wuzzuf_Jobs.csv");
         System.out.println("------------------Wuzzuf Data Set --------------------------");
@@ -40,6 +42,11 @@ public class WuzzufJobsAnalysis {
         wuzzufData.summary().show();
         System.out.println("----------------Describe Wuzzuf DataSet----------------------------------");
         wuzzufData.printSchema();
+        System.out.println("--------------------- Clean Data -------------------------");
+        cleanData();
+        System.out.println("--------------------- Most Demand Companies -------------------------");
+        Dataset<Row> data = this.jobsEachCompany();
+        this.pieChart(data);
         System.out.println("-------------------Most Popular Titles -------------------------------");
         Dataset<Row> MostTitles =MostPopularTitles(wuzzufData);
         MostTitles.show();
@@ -53,6 +60,65 @@ public class WuzzufJobsAnalysis {
 
 
     }
+
+
+    private void cleanData() {
+        // Remove Duplicates:
+        wuzzufData = wuzzufData.dropDuplicates();
+        // Remove Nulls from YearsOfExp column
+        String sql = "Select * FROM Wuzzuf_Jobs WHERE YearsExp != \"null Yrs of Exp\"";
+        wuzzufData.createOrReplaceTempView ("Wuzzuf_Jobs");
+        wuzzufData = spark.sql(sql);
+    }
+
+
+    public Dataset<Row> jobsEachCompany(){
+
+
+//        Dataset<Row> company = wuzzufData.groupBy("Company").count().orderBy(col("count").desc()).limit(20);
+        Dataset<Row> compJopsCount = spark.sql("SELECT   Company, COUNT(Company) AS Company_Count" +
+                " FROM Wuzzuf_Jobs GROUP BY Company " +
+                "ORDER BY Company_Count DESC");
+
+        compJopsCount.printSchema();
+
+        return compJopsCount;
+    }
+
+    Color getRandomColors(){
+        Random rand = new Random();
+        int upperbound = 255;
+        int r = rand.nextInt(upperbound);
+        int g= rand.nextInt(upperbound);
+        int b = rand.nextInt(upperbound);
+        return new Color(r,g,b);
+    }
+
+    public  void pieChart(Dataset<Row> data) throws IOException {
+        PieChart chart=new PieChartBuilder().width(2000).height(1000).title("Number of Job Offers for Each Company").build();
+        List<Row> listComp= data.collectAsList();
+        Color[] colorArray = new Color[listComp.size()];
+        int idx = 0;
+        for (Row row :listComp){
+            int nums = Integer.valueOf(row.get(1).toString());
+            String str=row.get(0).toString();
+            if (nums>=15){
+                chart.addSeries(str,nums);
+                colorArray[idx] =getRandomColors();
+                idx++;
+            }
+        }
+
+        chart.getStyler().setSeriesColors(colorArray);
+        new SwingWrapper<PieChart>(chart).displayChart();
+        File f=new File("src/main/resources/jop_comp_piChart");
+        if(f.exists()) {
+            f.delete();
+        }
+        BitmapEncoder.saveBitmap(chart,"src/main/resources/jop_comp_piChart", BitmapEncoder.BitmapFormat.PNG);
+
+    }
+
 
 
 
