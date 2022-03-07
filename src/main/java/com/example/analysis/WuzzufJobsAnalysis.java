@@ -48,10 +48,8 @@ public class WuzzufJobsAnalysis {
         Dataset<Row> MostAreas = MostPopularAreas(wuzzufData);
         MostAreas.show();
         AreasCountBarGraph(wuzzufData);
-
-
         System.out.println(mostPopularSkills(wuzzufData));
-
+        System.out.println("---------------------Test Commit-------------------------");
 
 
     }
